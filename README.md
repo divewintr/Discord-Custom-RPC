@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎮 RPC Picker
+# 🎮 Discord RPC Picker
 
 **Pick any game from Discord's detectable list and show it on your profile as custom Rich Presence.**
 
@@ -14,7 +14,7 @@
 
 ## 📖 About
 
-RPC Picker is a small desktop app with a searchable grid of games. Click one and it appears on your Discord profile as "Playing ...", using a single application you create in the Discord Developer Portal. It talks to your running Discord desktop app locally, so no tokens or logins are involved.
+Discord RPC Picker is a small desktop app with a searchable grid of games. Click one and it appears on your Discord profile as "Playing ...", using a single application you create in the Discord Developer Portal. It talks to your running Discord desktop app locally, so no tokens or logins are involved.
 
 <br>
 
