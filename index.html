@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.discordapp.com"
+    />
+    <title>RPC Picker</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #131417;
+        --panel: #1a1b1f;
+        --card: #232429;
+        --card-hover: #2c2d33;
+        --line: #2f3036;
+        --text: #e6e7ea;
+        --muted: #8e919a;
+        --accent: #5865f2;
+        --accent-hover: #6b77f5;
+        --live: #3ba55d;
+        --danger: #ed4245;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          14px/1.4 "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        overflow: hidden;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 18px 10px;
+      }
+      h1 {
+        font-size: 17px;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: 0.2px;
+        flex: 1;
+      }
+      .icon-btn {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border-radius: 10px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        cursor: pointer;
+        color: var(--muted);
+      }
+      .icon-btn:hover {
+        background: var(--card-hover);
+        color: var(--text);
+      }
+      .icon-btn.spin svg {
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .icon-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      #settings {
+        display: none;
+        margin: 0 18px 10px;
+        padding: 14px;
+        border-radius: 12px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        gap: 12px;
+        flex-direction: column;
+      }
+      #settings.open {
+        display: flex;
+      }
+      .field label {
+        display: block;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .field input {
+        width: 100%;
+        padding: 10px 12px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+      .field input:focus,
+      #search:focus {
+        outline: 2px solid var(--accent);
+        border-color: transparent;
+      }
+      .seg {
+        display: flex;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 3px;
+        gap: 3px;
+      }
+      .seg button {
+        flex: 1;
+        border: 0;
+        background: transparent;
+        padding: 7px 10px;
+        border-radius: 6px;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .seg button.on {
+        background: var(--accent);
+        color: #fff;
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+
+      .searchwrap {
+        position: relative;
+        padding: 0 18px 12px;
+      }
+      .searchwrap svg {
+        position: absolute;
+        left: 31px;
+        top: 11px;
+        width: 18px;
+        height: 18px;
+        color: var(--muted);
+        pointer-events: none;
+      }
+      #search {
+        width: 100%;
+        padding: 11px 14px 11px 40px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        font-size: 15px;
+      }
+      #count {
+        padding: 0 20px 8px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      #scroller {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 18px 18px;
+      }
+      #grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+        gap: 12px;
+      }
+      .card {
+        position: relative;
+        aspect-ratio: 3 / 4;
+        border-radius: 12px;
+        overflow: hidden;
+        cursor: pointer;
+        background: var(--card);
+        border: 1px solid var(--line);
+        transition:
+          transform 0.12s ease,
+          border-color 0.12s ease,
+          box-shadow 0.12s ease;
+      }
+      .card:hover {
+        transform: translateY(-3px);
+        border-color: #45474f;
+        box-shadow: 0 8px 20px #0007;
+      }
+      .card.active {
+        border-color: var(--live);
+        box-shadow: 0 0 0 2px var(--live);
+      }
+      .card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .ph {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        font-size: 30px;
+        font-weight: 700;
+        color: #ffffffcc;
+        letter-spacing: 1px;
+      }
+      .label {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 26px 10px 9px;
+        background: linear-gradient(transparent, #000d);
+        font-weight: 600;
+        font-size: 12.5px;
+        line-height: 1.25;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: var(--live);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.6px;
+        padding: 3px 7px;
+        border-radius: 20px;
+      }
+      #empty {
+        text-align: center;
+        color: var(--muted);
+        padding: 50px 20px;
+      }
+
+      #bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 18px;
+        background: var(--panel);
+        border-top: 1px solid var(--line);
+      }
+      #nowArt {
+        width: 42px;
+        height: 42px;
+        border-radius: 9px;
+        background: var(--card);
+        overflow: hidden;
+        flex: none;
+      }
+      #nowArt img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      #nowText {
+        flex: 1;
+        min-width: 0;
+      }
+      #nowTitle {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #nowSub {
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #nowSub.err {
+        color: #f38688;
+        white-space: normal;
+      }
+      #nowSub.live {
+        color: var(--live);
+      }
+      #stop {
+        padding: 9px 16px;
+        border-radius: 10px;
+        border: 0;
+        background: var(--danger);
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      #stop:hover {
+        filter: brightness(1.1);
+      }
+      #stop:disabled {
+        background: var(--card);
+        color: var(--muted);
+        cursor: default;
+        filter: none;
+      }
+
+      ::-webkit-scrollbar {
+        width: 10px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #34363d;
+        border-radius: 10px;
+        border: 2px solid var(--bg);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>RPC Picker</h1>
+      <button class="icon-btn" id="refresh" title="Refresh game list">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 12a9 9 0 1 1-3-6.7" />
+          <path d="M21 3v6h-6" />
+        </svg>
+      </button>
+      <button class="icon-btn" id="gear" title="Settings">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"
+          />
+        </svg>
+      </button>
+    </header>
+
+    <section id="settings">
+      <div class="field">
+        <label for="clientId">Application (client) ID</label>
+        <input id="clientId" placeholder="From your Developer Portal app" />
+      </div>
+      <div class="field">
+        <label>Display mode</label>
+        <div class="seg" id="modeSeg">
+          <button data-mode="name">Name in header</button>
+          <button data-mode="details">Details line</button>
+        </div>
+        <div class="hint">
+          Name in header shows the game as "Playing ...". Details line is the
+          fallback.
+        </div>
+      </div>
+    </section>
+
+    <div class="searchwrap">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      >
+        <circle cx="11" cy="11" r="7" />
+        <path d="M21 21l-4.3-4.3" />
+      </svg>
+      <input id="search" placeholder="Search games...  ( press / )" autofocus />
+    </div>
+    <div id="count"></div>
+
+    <div id="scroller">
+      <div id="grid"></div>
+      <div id="empty" hidden></div>
+      <div id="sentinel" style="height: 1px"></div>
+    </div>
+
+    <div id="bar">
+      <div id="nowArt"></div>
+      <div id="nowText">
+        <div id="nowTitle">Nothing playing</div>
+        <div id="nowSub">Pick a game to start</div>
+      </div>
+      <button id="stop" disabled>Stop</button>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const CDN = "https://cdn.discordapp.com";
+      const CHUNK = 60;
+      const COLORS = [
+        "#5865f2",
+        "#3ba55d",
+        "#eb459e",
+        "#faa61a",
+        "#00a8fc",
+        "#9b59b6",
+        "#e67e22",
+        "#1abc9c",
+      ];
+
+      let games = [],
+        filtered = [],
+        rendered = 0,
+        active = null,
+        mode = "name";
+
+      const coverUrl = (g) =>
+        g.cover
+          ? `${CDN}/app-assets/${g.id}/store/${g.cover}.png?size=512`
+          : null;
+      const iconUrl = (g) =>
+        g.icon ? `${CDN}/app-icons/${g.id}/${g.icon}.png?size=512` : null;
+      const sources = (g) => [coverUrl(g), iconUrl(g)].filter(Boolean);
+
+      function placeholder(g) {
+        const d = document.createElement("div");
+        d.className = "ph";
+        d.style.background = COLORS[Number(g.id.slice(-2)) % COLORS.length];
+        d.textContent = (g.name.match(/[A-Za-z0-9]/g) || ["?"])
+          .slice(0, 2)
+          .join("")
+          .toUpperCase();
+        return d;
+      }
+
+      function art(g) {
+        const srcs = sources(g);
+        if (!srcs.length) return placeholder(g);
+        const img = document.createElement("img");
+        img.loading = "lazy";
+        let i = 0;
+        img.src = srcs[0];
+        img.onerror = () => {
+          i++;
+          if (i < srcs.length) img.src = srcs[i];
+          else img.replaceWith(placeholder(g));
+        };
+        return img;
+      }
+
+      function card(g) {
+        const el = document.createElement("div");
+        el.className = "card" + (active?.id === g.id ? " active" : "");
+        el.dataset.id = g.id;
+        el.title = g.name;
+        el.appendChild(art(g));
+        if (active?.id === g.id) {
+          const b = document.createElement("div");
+          b.className = "badge";
+          b.textContent = "LIVE";
+          el.appendChild(b);
+        }
+        const l = document.createElement("div");
+        l.className = "label";
+        l.textContent = g.name;
+        el.appendChild(l);
+        el.addEventListener("click", () => pick(g));
+        return el;
+      }
+
+      function renderMore() {
+        const grid = $("grid");
+        const next = filtered.slice(rendered, rendered + CHUNK);
+        for (const g of next) grid.appendChild(card(g));
+        rendered += next.length;
+      }
+
+      function applyFilter() {
+        const q = $("search").value.trim().toLowerCase();
+        filtered = q
+          ? games.filter((g) => g.name.toLowerCase().includes(q))
+          : games;
+        rendered = 0;
+        $("grid").textContent = "";
+        $("scroller").scrollTop = 0;
+
+        const empty = $("empty");
+        if (!games.length) {
+          empty.hidden = false;
+          empty.textContent =
+            "No games loaded. Put games.json next to main.js, or click the refresh button.";
+        } else if (!filtered.length) {
+          empty.hidden = false;
+          empty.textContent = "No games match your search.";
+        } else {
+          empty.hidden = true;
+        }
+        $("count").textContent = games.length
+          ? `${filtered.length.toLocaleString()} of ${games.length.toLocaleString()} games`
+          : "";
+        renderMore();
+      }
+
+      function setNow(title, sub, cls = "", g = null) {
+        $("nowTitle").textContent = title;
+        const s = $("nowSub");
+        s.textContent = sub;
+        s.className = cls;
+        const a = $("nowArt");
+        a.textContent = "";
+        if (g) a.appendChild(art(g));
+      }
+
+      async function pick(g) {
+        const clientId = $("clientId").value.trim();
+        if (!clientId) {
+          $("settings").classList.add("open");
+          $("clientId").focus();
+          setNow(
+            "Application ID needed",
+            "Paste your Developer Portal application ID.",
+            "err",
+          );
+          return;
+        }
+        localStorage.setItem("clientId", clientId);
+        setNow(g.name, "Connecting...", "", g);
+        const res = await window.api.start({
+          clientId,
+          gameName: g.name,
+          gameId: g.id,
+          icon: g.icon,
+          mode,
+        });
+        if (res.ok) {
+          active = g;
+          setNow(g.name, "Showing on your profile", "live", g);
+          $("stop").disabled = false;
+          applyFilterKeepScroll();
+        } else {
+          setNow("Could not connect", res.error, "err");
+        }
+      }
+
+      function applyFilterKeepScroll() {
+        const top = $("scroller").scrollTop;
+        const count = rendered;
+        $("grid").textContent = "";
+        rendered = 0;
+        while (rendered < count && rendered < filtered.length) renderMore();
+        $("scroller").scrollTop = top;
+      }
+
+      $("stop").addEventListener("click", async () => {
+        const res = await window.api.stop();
+        if (res.ok) {
+          active = null;
+          setNow("Nothing playing", "Presence cleared", "");
+          $("stop").disabled = true;
+          applyFilterKeepScroll();
+        } else {
+          setNow("Could not clear", res.error, "err");
+        }
+      });
+
+      $("refresh").addEventListener("click", async () => {
+        const btn = $("refresh");
+        btn.classList.add("spin");
+        try {
+          games = await window.api.refreshGames();
+          applyFilter();
+          $("nowSub").textContent =
+            `List updated: ${games.length.toLocaleString()} games`;
+        } catch (err) {
+          setNow("Refresh failed", err.message, "err");
+        } finally {
+          btn.classList.remove("spin");
+        }
+      });
+
+      $("gear").addEventListener("click", () =>
+        $("settings").classList.toggle("open"),
+      );
+
+      function setMode(m) {
+        mode = m;
+        localStorage.setItem("mode", m);
+        document
+          .querySelectorAll("#modeSeg button")
+          .forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
+      }
+      document
+        .querySelectorAll("#modeSeg button")
+        .forEach((b) =>
+          b.addEventListener("click", () => setMode(b.dataset.mode)),
+        );
+
+      let timer;
+      $("search").addEventListener("input", () => {
+        clearTimeout(timer);
+        timer = setTimeout(applyFilter, 120);
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "/" && document.activeElement.tagName !== "INPUT") {
+          e.preventDefault();
+          $("search").focus();
+        }
+        if (e.key === "Escape" && document.activeElement === $("search")) {
+          $("search").value = "";
+          applyFilter();
+        }
+      });
+
+      new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && rendered < filtered.length)
+            renderMore();
+        },
+        { root: $("scroller"), rootMargin: "400px" },
+      ).observe($("sentinel"));
+
+      (async () => {
+        $("clientId").value = localStorage.getItem("clientId") || "";
+        setMode(localStorage.getItem("mode") || "name");
+        if (!$("clientId").value) $("settings").classList.add("open");
+        games = await window.api.loadGames();
+        applyFilter();
+      })();
+    </script>
+  </body>
+</html>

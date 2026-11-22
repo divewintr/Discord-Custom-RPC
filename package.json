@@ -1,0 +1,15 @@
+{
+  "name": "Discord-Custom-RPC",
+  "version": "1.0.0",
+  "description": "Pick a game from the detectable list and show it as custom Rich Presence",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "@xhayper/discord-rpc": "^1.2.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}
